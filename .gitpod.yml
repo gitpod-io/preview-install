@@ -1,0 +1,9 @@
+tasks:
+  - before: docker run --rm -it -p 5000:5000 registry:2
+    init: docker build -t localhost:5000/gitpod-k3s:latest . && gp await-port 5000 && docker push localhost:5000/gitpod-k3s:latest
+    command: |
+      echo docker pull $(gp url 5000 | cut -d / -f 3)/gitpod-k3s:latest
+      echo docker run --name gitpod --privileged --rm -it -e DNSSERVER=10.0.0.1 -e DOMAIN=foobar.com -v /tmp/workspaces:/var/gitpod/workspaces $(gp url 5000 | cut -d / -f 3)/gitpod-k3s:latest
+ports:
+  - port: 5000
+    visibility: public
