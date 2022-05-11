@@ -5,7 +5,7 @@
 Things that are working:
 - latest installer is integrated
 - PVCs are provisioned using `local-path`
-- All containers start
+- All containers go out of pending (some don't work because of the `buildin-registry-certs` issue)
 
 Things that are missing:
 - generating self-signed certs in the entrypoint.sh
