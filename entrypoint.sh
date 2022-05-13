@@ -9,35 +9,9 @@ fi
 
 mkdir -p /var/lib/rancher/k3s/server/manifests/gitpod
 
-# Generate Certificates
-# Create a CA cert
-openssl req -x509 \
-            -sha256 -days 356 \
-            -nodes \
-            -newkey rsa:2048 \
-            -subj "/CN=${DOMAIN}/C=US/L=San Fransisco" \
-            -keyout myCA.key -out myCA.pem 
-
-openssl genrsa -out $DOMAIN.key 2048
-openssl req -new -key $DOMAIN.key -out $DOMAIN.csr -subj "/C=US/ST=CA/L=SF/O=Gitpod/OU=client/CN=`hostname -f`/emailAddress=example@gitpod.io"
-
-cat > $DOMAIN.ext << EOF
-authorityKeyIdentifier=keyid,issuer
-basicConstraints=CA:FALSE
-keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
-subjectAltName = @alt_names
-[alt_names]
-DNS.1 = $DOMAIN
-DNS.2 = *.$DOMAIN
-DNS.3 = *.ws.$DOMAIN
-EOF
-
-openssl x509 -req -in $DOMAIN.csr -CA ../myCA.pem -CAkey ../myCA.key -CAcreateserial \
--out $DOMAIN.crt -days 825 -sha256 -extfile $DOMAIN.ext 
-
-CACERT=$(base64 < /myCA.pem )
-SSLCERT=$(base64 < /$DOMAIN.crt)
-SSLKEY=$(base64 < /$DOMAIN.key)
+CACERT=$(base64 -w0 < /certs/CA.pem )
+SSLCERT=$(base64 -w0 < /certs/$DOMAIN.crt)
+SSLKEY=$(base64 -w0 < /certs/$DOMAIN.key)
 
 cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/customCA-cert.yaml
 ---
@@ -48,7 +22,7 @@ metadata:
   labels:
     app: gitpod
 data:
-  ca.crt: "$CACERT"
+  ca.crt: $CACERT
 EOF
 
 cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/https-cert.yaml
@@ -60,8 +34,50 @@ metadata:
   labels:
     app: gitpod
 data:
-  ssl.crt: "$SSLCERT"
-  ssl.key: "$SSLKEY"
+  tls.crt: $SSLCERT
+  tls.key: $SSLKEY
+EOF
+
+cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/registry-cert.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: builtin-registry-certs
+  labels:
+    app: gitpod
+data:
+  ca.crt: $CACERT
+  tls.crt: $SSLCERT
+  tls.key: $SSLKEY
+EOF
+
+cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/manager-cert.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ws-manager-client-tls
+  labels:
+    app: gitpod
+data:
+  ca.crt: $CACERT
+  tls.crt: $SSLCERT
+  tls.key: $SSLKEY
+EOF
+
+cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/ws-daemon-cert.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ws-daemon-tls
+  labels:
+    app: gitpod
+data:
+  ca.crt: $CACERT
+  tls.crt: $SSLCERT
+  tls.key: $SSLKEY
 EOF
 
 /gitpod-installer init > config.yaml
@@ -70,6 +86,7 @@ yq e -i ".certificate.name = \"https-cert\"" config.yaml
 yq e -i ".certificate.kind = \"secret\"" config.yaml
 yq e -i ".customCACert.name = \"ca-cert\"" config.yaml
 yq e -i ".customCACert.kind = \"secret\"" config.yaml
+yq -i '.workspace.runtime.containerdRuntimeDir = "/run/k3s/containerd/containerd.sock"' config.yaml
 
 /gitpod-installer render --config config.yaml --output-split-files /var/lib/rancher/k3s/server/manifests/gitpod
 rm /var/lib/rancher/k3s/server/manifests/gitpod/*NetworkPolicy*
