@@ -1,0 +1,14 @@
+spec:
+  volumeClaimTemplates:
+  - metadata:
+      creationTimestamp: null
+      labels:
+        app: gitpod
+        component: messagebus
+      name: messagebus
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi

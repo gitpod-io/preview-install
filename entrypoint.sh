@@ -1,17 +1,36 @@
 #!/bin/sh
 
-set -eu
+set -eux -o pipefile
 
 if [ -z "$DOMAIN" ]; then
     >&2 echo "Error: Environment variable DOMAIN is missing."
     exit 1;
 fi
 
+
+
+FN_CACERT="/certs/ca.pem"
+FN_SSLCERT="/certs/ssl.crt"
+FN_SSLKEY="/certs/ssl.key"
+FN_CAKEY="/certs/ca.key"
+FN_CSREXT="/certs/cert.ext"
+
+if [ ! -f "$FN_CACERT" ] && [ ! -f "$FN_SSLCERT" ] && [ ! -f "$FN_SSLKEY" ]; then
+    [ ! -d /certs ] && mkdir -p /certs
+
+    /bin/mkcert \
+      -cert-file "$FN_SSLCERT" \
+      -key-file "$FN_SSLKEY" \
+      "*.ws.${DOMAIN}" "*.${DOMAIN}" "${DOMAIN}" "ws-manager" "wsdaemon"
+    CAROOT="/certs" /bin/mkcert -install
+    mv /certs/rootCA.pem "$FN_CACERT"
+fi
+
 mkdir -p /var/lib/rancher/k3s/server/manifests/gitpod
 
-CACERT=$(base64 -w0 < /certs/CA.pem )
-SSLCERT=$(base64 -w0 < /certs/$DOMAIN.crt)
-SSLKEY=$(base64 -w0 < /certs/$DOMAIN.key)
+CACERT=$(base64 -w0 < "$FN_CACERT")
+SSLCERT=$(base64 -w0 < "$FN_SSLCERT")
+SSLKEY=$(base64 -w0 < "$FN_SSLKEY")
 
 cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/customCA-cert.yaml
 ---
@@ -66,6 +85,20 @@ data:
   tls.key: $SSLKEY
 EOF
 
+cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/ws-manager-cert.yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ws-manager-tls
+  labels:
+    app: gitpod
+data:
+  ca.crt: $CACERT
+  tls.crt: $SSLCERT
+  tls.key: $SSLKEY
+EOF
+
 cat << EOF > /var/lib/rancher/k3s/server/manifests/gitpod/ws-daemon-cert.yaml
 ---
 apiVersion: v1
@@ -86,12 +119,16 @@ yq e -i ".certificate.name = \"https-cert\"" config.yaml
 yq e -i ".certificate.kind = \"secret\"" config.yaml
 yq e -i ".customCACert.name = \"ca-cert\"" config.yaml
 yq e -i ".customCACert.kind = \"secret\"" config.yaml
-yq -i '.workspace.runtime.containerdRuntimeDir = "/run/k3s/containerd/containerd.sock"' config.yaml
+yq e -i '.workspace.runtime.containerdSocket = "/run/k3s/containerd/containerd.sock"' config.yaml
+yq e -i '.workspace.runtime.containerdRuntimeDir = "/var/lib/rancher/k3s/agent/containerd/io.containerd.runtime.v2.task/k8s.io/"' config.yaml
 
 /gitpod-installer render --config config.yaml --output-split-files /var/lib/rancher/k3s/server/manifests/gitpod
+for f in /var/lib/rancher/k3s/server/manifests/gitpod/*.yaml; do (cat "$f"; echo) >> /var/lib/rancher/k3s/server/gitpod.debug; done
 rm /var/lib/rancher/k3s/server/manifests/gitpod/*NetworkPolicy*
 for f in /var/lib/rancher/k3s/server/manifests/gitpod/*PersistentVolumeClaim*.yaml; do yq e -i '.spec.storageClassName="local-path"' "$f"; done
+yq eval-all -i '. as $item ireduce ({}; . *+ $item)' /var/lib/rancher/k3s/server/manifests/gitpod/*_StatefulSet_messagebus.yaml /app/manifests/messagebus.yaml 
 for f in /var/lib/rancher/k3s/server/manifests/gitpod/*StatefulSet*.yaml; do yq e -i '.spec.volumeClaimTemplates[0].spec.storageClassName="local-path"' "$f"; done
+ 
 for f in /var/lib/rancher/k3s/server/manifests/gitpod/*.yaml; do (cat "$f"; echo) >> /var/lib/rancher/k3s/server/manifests/gitpod.yaml; done
 rm -rf /var/lib/rancher/k3s/server/manifests/gitpod
 

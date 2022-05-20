@@ -1,3 +1,4 @@
+
 tasks:
   - before: docker run --rm -d -p 5000:5000 registry:2
     init: docker build -t localhost:5000/gitpod-k3s:latest . && gp await-port 5000 && docker push localhost:5000/gitpod-k3s:latest
@@ -13,3 +14,7 @@ tasks:
 ports:
   - port: 5000
     visibility: public
+
+vscode:
+  extensions:
+    - golang.go
