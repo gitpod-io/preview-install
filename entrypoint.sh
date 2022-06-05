@@ -2,10 +2,7 @@
 
 set -eux -o pipefile
 
-if [ -z "$DOMAIN" ]; then
-    >&2 echo "Error: Environment variable DOMAIN is missing."
-    exit 1;
-fi
+DOMAIN="172-17-17-172.nip.io"
 
 # M1 and cgroupsv2 stuff
 if ! grep -iq 'cpu.*hz' /proc/cpuinfo; then
@@ -90,6 +87,9 @@ rm /var/lib/rancher/k3s/server/manifests/gitpod/*NetworkPolicy*
 for f in /var/lib/rancher/k3s/server/manifests/gitpod/*PersistentVolumeClaim*.yaml; do yq e -i '.spec.storageClassName="local-path"' "$f"; done
 yq eval-all -i '. as $item ireduce ({}; . *+ $item)' /var/lib/rancher/k3s/server/manifests/gitpod/*_StatefulSet_messagebus.yaml /app/manifests/messagebus.yaml 
 for f in /var/lib/rancher/k3s/server/manifests/gitpod/*StatefulSet*.yaml; do yq e -i '.spec.volumeClaimTemplates[0].spec.storageClassName="local-path"' "$f"; done
+
+# assign specific external IP for the `proxy` service
+yq eval-all -i '.spec.externalIPs = ["172.17.17.172"]' /var/lib/rancher/k3s/server/manifests/gitpod/*_Service_proxy.yaml
 
 # removing init container from ws-daemon (systemd and Ubuntu)
 yq eval-all -i 'del(.spec.template.spec.initContainers[0])' /var/lib/rancher/k3s/server/manifests/gitpod/*_DaemonSet_ws-daemon.yaml
