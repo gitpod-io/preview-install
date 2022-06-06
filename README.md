@@ -1,15 +1,18 @@
-# Gitpod in a Docker container with k3s
+# Gitpod Preview Installation
 
-**This is merely a starting point**
+This repo helps users to try out and preview self-hosted Gitpod **locally** without all the things
+needed for a production instance. The aim is to provide an installation mechanism as minimal and
+simple as possible.
 
-Things that are working:
-- latest installer is integrated
-- PVCs are provisioned using `local-path`
-- All containers go out of pending (some don't work because of the `buildin-registry-certs` issue)
+## Installation
 
-Things that are missing:
-- generating self-signed certs in the entrypoint.sh
-- all the DNS setup, e.g. patching CoreDNS in the entrypoint
+```bash
+sudo docker run --privileged --name gitpod --rm -it -v /tmp/workspaces:/var/gitpod/workspaces 5000-gitpodio-previewinstall-ox4ypumem4w.ws-us46.gitpod.io/gitpod-k3s:latest
+```
 
-Things that are not working:
-- the `builtin-registry-certs` secret seems to be missing
+Once the above command is ran, Your gitpod instance can be accessed at `172-17-17-172.nip.io`. [nip.io](https://nip.io/) is just wildcard DNS for local addresses, So all
+of this is local, and cannot be accessed over the internet.
+
+## Known Issues
+
+- Prebuilds don't work as they require webhooks support over the internet.
