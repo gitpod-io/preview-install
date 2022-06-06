@@ -7,7 +7,7 @@ simple as possible.
 ## Installation
 
 ```bash
-sudo docker run --privileged --name gitpod --rm -it -v /tmp/workspaces:/var/gitpod/workspaces 5000-gitpodio-previewinstall-ox4ypumem4w.ws-us46.gitpod.io/gitpod-k3s:latest
+sudo docker run --privileged --name gitpod --rm -it -v /tmp/gitpod:/var/gitpod 5000-gitpodio-previewinstall-ox4ypumem4w.ws-us46.gitpod.io/gitpod-k3s:latest
 ```
 
 Once the above command starts running and the pods are ready (can be checked by running `docker exec gitpod kubectl get pods`), 
@@ -18,6 +18,9 @@ docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' gitp
 ```
 
 [nip.io](https://nip.io/) is just wildcard DNS for local addresses, So all off this is local, and cannot be accessed over the internet.
+
+As the `self-hosted` instance is self-signed, The root certificate to upload into your browser trust store to access the URL is available at
+`/tmp/gitpod/gitpod-ca.crt`.
 
 ## Known Issues
 

@@ -30,11 +30,13 @@ fi
 
 mount --make-shared /sys/fs/cgroup
 mount --make-shared /proc
-mount --make-shared /var/gitpod/workspaces
+mount --make-shared /var/gitpod
 
 mkcert -install
 # install in local store
 cat $HOME/.local/share/mkcert/rootCA.pem >> /etc/ssl/certs/ca-certificates.crt
+# also send root cert into a volume
+cat $HOME/.local/share/mkcert/rootCA.pem > /var/gitpod/gitpod-ca.crt
 
 cat << EOF > /var/lib/rancher/k3s/server/manifests/ca-pair.yaml
 apiVersion: v1
