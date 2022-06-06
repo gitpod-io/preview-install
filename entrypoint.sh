@@ -87,6 +87,7 @@ yq e -i ".customCACert.kind = \"secret\"" config.yaml
 yq e -i ".observability.logLevel = \"debug\"" config.yaml
 yq e -i '.workspace.runtime.containerdSocket = "/run/k3s/containerd/containerd.sock"' config.yaml
 yq e -i '.workspace.runtime.containerdRuntimeDir = "/var/lib/rancher/k3s/agent/containerd/io.containerd.runtime.v2.task/k8s.io/"' config.yaml
+yq e -i '.experimental.webapp.server.workspaceDefaults.workspaceImage = "docker.io/gitpod/workspace-base:latest"' config.yaml
 
 echo "extracting images to download ahead..."
 /gitpod-installer render --config config.yaml | grep 'image:' | sed 's/ *//g' | sed 's/image://g' | sed 's/\"//g' | sed 's/^-//g' | sort | uniq > /gitpod-images.txt
@@ -96,7 +97,7 @@ do
    ctr images pull $image &>/dev/null &
 done
 
-ctr images pull "docker.io/gitpod/workspace-full:latest" &>/dev/null &
+ctr images pull "docker.io/gitpod/workspace-base:latest" &>/dev/null &
 
 /gitpod-installer render --config config.yaml --output-split-files /var/lib/rancher/k3s/server/manifests/gitpod
 for f in /var/lib/rancher/k3s/server/manifests/gitpod/*.yaml; do (cat "$f"; echo) >> /var/lib/rancher/k3s/server/gitpod.debug; done
