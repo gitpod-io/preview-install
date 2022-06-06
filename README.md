@@ -10,8 +10,14 @@ simple as possible.
 sudo docker run --privileged --name gitpod --rm -it -v /tmp/workspaces:/var/gitpod/workspaces 5000-gitpodio-previewinstall-ox4ypumem4w.ws-us46.gitpod.io/gitpod-k3s:latest
 ```
 
-Once the above command is ran, Your gitpod instance can be accessed at `172-17-17-172.nip.io`. [nip.io](https://nip.io/) is just wildcard DNS for local addresses, So all
-of this is local, and cannot be accessed over the internet.
+Once the above command starts running and the pods are ready (can be checked by running `docker exec gitpod kubectl get pods`), 
+The URL to access your gitpod instance can be retrieved by running
+
+```
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' gitpod |  sed -r 's/[.]+/-/g' | sed 's/$/.nip.io/g'
+```
+
+[nip.io](https://nip.io/) is just wildcard DNS for local addresses, So all off this is local, and cannot be accessed over the internet.
 
 ## Known Issues
 
