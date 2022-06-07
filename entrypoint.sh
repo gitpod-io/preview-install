@@ -2,6 +2,21 @@
 
 set -eux -o pipefile
 
+# check for minimum requirements
+REQUIRED_MEM_KB=$((6 * 1024 * 1024))
+total_mem_kb=$(cat /proc/meminfo | awk '/MemTotal:/ {print $2}')
+if [ $total_mem_kb -lt $((REQUIRED_MEM_KB)) ]; then
+    echo "Preview installation of Gitpod requires a system with at least 6GB of memory"
+    exit 1
+fi
+
+REQUIRED_CORES=4
+total_cores=$(nproc)
+if [ $total_cores -lt $((REQUIRED_CORES)) ]; then
+    echo "Preview installation of Gitpod requires a system with at least 4 CPU Cores"
+    exit 1
+fi
+
 # Get container's IP address
 NODE_IP=$(hostname -i)
 DOMAIN_STRING=${NODE_IP//[.]/-}
