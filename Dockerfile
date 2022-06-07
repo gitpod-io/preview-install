@@ -1,6 +1,6 @@
 FROM eu.gcr.io/gitpod-core-dev/build/installer:main.3413 AS installer
 
-FROM rancher/k3s:v1.22.9-rc4-k3s1
+FROM rancher/k3s:v1.21.12-k3s1
 
 ADD https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64 /bin/mkcert
 RUN chmod +x /bin/mkcert
