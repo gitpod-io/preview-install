@@ -9,14 +9,6 @@ DOMAIN="${DOMAIN_STRING}.nip.io"
 
 echo "Gitpod Domain: $DOMAIN"
 
-# M1 and cgroupsv2 stuff
-if ! grep -iq 'cpu.*hz' /proc/cpuinfo; then
-  cpuinfo_file=/etc/cpuinfo_with_fake_speed
-  cp /proc/cpuinfo $cpuinfo_file
-  echo "CPU MHz: 2345.678" >> $cpuinfo_file
-  mount --bind $cpuinfo_file /proc/cpuinfo
-fi
-
 if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
   echo "[$(date -Iseconds)] [CgroupV2 Fix] Evacuating Root Cgroup ..."
 	# move the processes from the root group to the /init group,
