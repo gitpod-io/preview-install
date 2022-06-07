@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eux -o pipefile
+set -ex -o pipefail
 
 # check for minimum requirements
 REQUIRED_MEM_KB=$((6 * 1024 * 1024))
@@ -18,9 +18,11 @@ if [ $total_cores -lt $((REQUIRED_CORES)) ]; then
 fi
 
 # Get container's IP address
-NODE_IP=$(hostname -i)
-DOMAIN_STRING=${NODE_IP//[.]/-}
-DOMAIN="${DOMAIN_STRING}.nip.io"
+if [ -z "${DOMAIN}" ]; then
+  NODE_IP=$(hostname -i)
+  DOMAIN_STRING=${NODE_IP//[.]/-}
+  DOMAIN="${DOMAIN_STRING}.nip.io"
+fi
 
 echo "Gitpod Domain: $DOMAIN"
 
@@ -37,7 +39,7 @@ fi
 
 mount --make-shared /sys/fs/cgroup
 mount --make-shared /proc
-mount --make-shared /var/gitpod
+mount --make-shared /var/gitpod/workspaces
 
 mkcert -install
 # install in local store
