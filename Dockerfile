@@ -1,5 +1,11 @@
 FROM eu.gcr.io/gitpod-core-dev/build/installer:main.3413 AS installer
 
+FROM golang:1.18 as prettylog
+
+WORKDIR /app
+COPY prettylog/* ./
+RUN CGO_ENABLED=0 go build .
+
 FROM rancher/k3s:v1.21.12-k3s1
 
 ADD https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64 /bin/mkcert
@@ -12,6 +18,8 @@ ADD https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-m
 
 ADD https://github.com/mikefarah/yq/releases/download/v4.25.1/yq_linux_amd64 /bin/yq 
 RUN chmod +x /bin/yq
+
+COPY --from=prettylog /app/prettylog /prettylog
 
 COPY manifests/* /app/manifests/
 COPY --from=installer /app/installer /gitpod-installer
